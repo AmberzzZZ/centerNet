@@ -27,6 +27,9 @@
 
 ### one attemp
     centerNext: 因为发现hourglass中大量使用了residual block，考虑换成resNext block，提升计算效率
+    参数量瞬间从33million下降到15million
+
+    se-centerNext: one step further, add se-blocks in residuals
 
 
 

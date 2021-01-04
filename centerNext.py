@@ -1,4 +1,5 @@
-from keras.layers import Input, Conv2D, BatchNormalization, ReLU, UpSampling2D, add, Lambda, MaxPooling2D, concatenate
+from keras.layers import Input, Conv2D, BatchNormalization, ReLU, UpSampling2D, add, Lambda, MaxPooling2D, concatenate, \
+                         GlobalAveragePooling2D, Dense, multiply, Reshape
 from keras.models import Model
 import keras.backend as K
 from loss import det_loss
@@ -47,10 +48,10 @@ def hourglass_module(inpt, n_classes, n_channles):
     # encoder: s1 residual + s2 residual
     for i in range(n_levels):
         if i!=0:
-            x = resnext(x, n_channles[i], strides=1)
+            x = resnext(x, n_channles[i], strides=1, se_ratio=16)
             features.append(x)
         if i!=n_levels-1:
-            x = residual(x, n_channles[i+1], strides=2)
+            x = resnext(x, n_channles[i+1], strides=2)
             # x = InceptionDownSamp(x)
 
     # mid connection: 4 residuals
@@ -64,8 +65,8 @@ def hourglass_module(inpt, n_classes, n_channles):
         skip = resnext(skip, n_channles[i], strides=1)
         skip = resnext(skip, n_channles[i], strides=1)
         # features
-        x = resnext(x, n_channles[i])
-        x = resnext(x, n_channles[i])
+        x = resnext(x, n_channles[i], se_ratio=16)
+        x = resnext(x, n_channles[i], se_ratio=16)
         x = UpSampling2D()(x)
         # add
         x = add([x, skip])
@@ -99,12 +100,15 @@ def residual(inpt, n_filters, strides=1):
     return x
 
 
-def resnext(inpt, n_filters, strides=1, C=32):
+def resnext(inpt, n_filters, strides=1, C=32, se_ratio=0):
     x = inpt
     # bottleneck: 1x1, 3x3, 1x1
     x = Conv_BN(x, n_filters//2, 1, strides=strides, activation='relu')
     x = Conv_BN(x, n_filters//2, 3, strides=1, group=C, activation='relu')
     x = Conv_BN(x, n_filters, 1, strides=1, activation=None)
+    # se-block
+    if se_ratio:
+        x = SE_block(x, se_ratio)
     # skip: 1x1 conv
     if K.int_shape(inpt)[-1] == n_filters and strides==1:
         # identity
@@ -134,6 +138,17 @@ def Conv_BN(x, n_filters, kernel_size, strides, group=1, activation=None):
     x = BatchNormalization()(x)
     if activation:
         x = ReLU()(x)
+    return x
+
+
+def SE_block(inpt, ratio=16):     # spatial squeeze and channel excitation
+    x = inpt
+    n_filters = x._keras_shape[-1]
+    x = GlobalAveragePooling2D()(x)
+    x = Reshape((1,1,n_filters))(x)
+    x = Dense(n_filters//ratio, activation='relu', use_bias=False)(x)
+    x = Dense(n_filters, activation='sigmoid', use_bias=False)(x)
+    x = multiply([inpt, x])
     return x
 
 
