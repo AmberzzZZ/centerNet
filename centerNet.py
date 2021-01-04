@@ -34,7 +34,7 @@ def centerNet(input_shape=(512,512,3), n_classes=80, n_stacks=2, n_channles=[256
     # loss
     gt = Input((input_shape[0]//4, input_shape[1]//4, n_classes+2+2))
     loss = Lambda(det_loss, arguments={'n_classes':n_classes})([heatmaps, offsets, sizes, gt])
-    inter_sv = Lambda(inter_loss, arguments={'n_classes':n_classes})([outputs, gt])
+    inter_sv = Lambda(inter_loss, arguments={'n_classes':n_classes})([*outputs, gt])
 
     # model
     model = Model([inpt, gt], [loss, inter_sv])

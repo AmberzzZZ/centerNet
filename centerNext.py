@@ -2,7 +2,7 @@ from keras.layers import Input, Conv2D, BatchNormalization, ReLU, UpSampling2D, 
                          GlobalAveragePooling2D, Dense, multiply, Reshape
 from keras.models import Model
 import keras.backend as K
-from loss import det_loss
+from loss import det_loss, inter_loss
 from groupConv import GroupConv2D
 
 
@@ -17,7 +17,8 @@ def centerNext(input_shape=(512,512,3), n_classes=80, n_stacks=2, n_channles=[25
     outputs = []
     for i in range(n_stacks):
         x, x_intermediate = hourglass_module(x, n_classes, n_channles)
-    outputs.append(x_intermediate)
+        if i!= n_stacks-1:
+            outputs.append(x_intermediate)
 
     # kp prediction: separated 3x3 conv & 1x1 conv
     head = x
@@ -34,9 +35,10 @@ def centerNext(input_shape=(512,512,3), n_classes=80, n_stacks=2, n_channles=[25
     # loss
     gt = Input((input_shape[0]//4, input_shape[1]//4, n_classes+2+2))
     loss = Lambda(det_loss, arguments={'n_classes':n_classes})([heatmaps, offsets, sizes, gt])
+    inter_sv = Lambda(inter_loss, arguments={'n_classes':n_classes})([*outputs, gt])
 
     # model
-    model = Model([inpt, gt], loss)
+    model = Model([inpt, gt], [loss, inter_sv])
 
     return model
 

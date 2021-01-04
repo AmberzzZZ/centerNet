@@ -24,6 +24,8 @@
         * centerNet论文里没提
         * cornerNet论文里提了：用了但是不作为下一级输入
 
+    实验发现intermediate supervision非常重要！！！收敛快，而且heatmap更准
+
 
 ### one attemp
     centerNext: 因为发现hourglass中大量使用了residual block，考虑换成resNext block，提升计算效率
