@@ -33,6 +33,10 @@
 
     se-centerNext: one step further, add se-blocks in residuals
 
+    compose augmentation: 
+        label加权的不行（mixup），因为新定义的loss中positives必须prob为1，可以考虑cutmix和mosaic
+        所以label smoothing也用不成
+
 
 
 

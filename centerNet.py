@@ -88,7 +88,7 @@ def residual(inpt, n_filters, strides=1, se_ratio=0):
     x = Conv_BN(x, n_filters//2, 3, strides=1, activation='relu')
     x = Conv_BN(x, n_filters, 1, strides=1, activation=None)
     # se-block
-    if se_ratio:
+    if se_ratio and strides==1:
         x = SE_block(x, se_ratio)
     # skip: 1x1 conv
     if K.int_shape(inpt)[-1] == n_filters and strides==1:
